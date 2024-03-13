@@ -14,6 +14,7 @@ class Graph:
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model = AutoModel.from_pretrained(self.model_name)
         self.encoded_vectors = self.encode_text_to_vectors()
+        self.speaker = self.get_speaker()
         self.G = self.build_graph_from_vectors()
 
     def encode_text_to_vectors(self):
@@ -29,6 +30,11 @@ class Graph:
             encoded_vectors.append(vector)
         return encoded_vectors
 
+    def get_speaker(self):
+        speakers = [utterance['speaker'] for utterance in
+                    self.conversation['dialog']]
+        return speakers
+
     def build_graph_from_vectors(self, window_size = 3):
         G = nx.Graph()
         for i, vector_i in enumerate(self.encoded_vectors):
@@ -39,9 +45,11 @@ class Graph:
                            min(i + window_size + 1, len(self.encoded_vectors))):
                 sim = cosine_similarity([self.encoded_vectors[i]],
                                         [self.encoded_vectors[j]])[0, 0]
-                if i % 2 == 0 and j % 2 == 0:
+                if (self.speaker[i] == self.speaker[j] and self.speaker[i] ==
+                        'seeker'):
                     G.add_edge(i, j, weight = 2)
-                elif i % 2 == 1 and j % 2 == 1:
+                elif (self.speaker[i] == self.speaker[j] and self.speaker[i]
+                      == 'helper'):
                     G.add_edge(i, j, weight = 3)
                 else:
                     G.add_edge(i, j, weight = 1)
